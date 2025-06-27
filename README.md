@@ -1,16 +1,3 @@
----
-license: other
-license_name: tencent-hunyuan-a13b
-license_link: https://github.com/Tencent-Hunyuan/Hunyuan-A13B/blob/main/LICENSE
----
-
-<p align="left">
-    <a href="README_CN.md">中文</a>&nbsp ｜ English</a>
-</p>
-<br><br>
-
-
-
 <p align="center">
  <img src="https://dscache.tencent-cloud.cn/upload/uploader/hunyuan-64b418fd052c033b228e04bc77bbc4b54fd7f5bc.png" width="400"/> <br>
 </p><p></p>
@@ -24,8 +11,10 @@ license_link: https://github.com/Tencent-Hunyuan/Hunyuan-A13B/blob/main/LICENSE
     <img src="https://avatars.githubusercontent.com/u/109945100?s=200&v=4" width="16"/>&nbsp;<a href="https://modelscope.cn/models/Tencent-Hunyuan/Hunyuan-A13B-Instruct"><b>ModelScope</b></a>
 </p>
 
+
 <p align="center">
-    <a href="https://github.com/Tencent/Hunyuan-A13B"><b>GITHUB</b></a>
+    <a href="https://github.com/Tencent/Hunyuan-A13B"><b>GITHUB</b></a> | 
+    <a href="https://github.com/Tencent-Hunyuan/Hunyuan-A13B/blob/main/LICENSE"><b>LICENSE</b></a>
 </p>
 
 
@@ -137,9 +126,75 @@ print(f"answer_content:{answer_content}\n\n")
 Hunyuan-A13B provides processes related to model training. Please refer to [Training](train/README.md) for model training purposes.
 
 
+## Quantitative Compression
+We used our own `AngleSlim` compression tool to produce FP8 and INT4 quantization models. `AngleSlim` compression tool is expected to be open source in early July, which will support one-click quantization and compression of large models, please look forward to it, and you can download our quantization models directly for deployment testing now.
+
+### FP8 Quantization
+We use FP8-static quantization, FP8 quantization adopts 8-bit floating point format, through a small amount of calibration data (without training) to pre-determine the quantization scale, the model weights and activation values will be converted to FP8 format, to improve the inference efficiency and reduce the deployment threshold. We you can use AngleSlim quantization, you can also directly download our quantization completed open source model to use [Hunyuan-A13B-Instruct-FP8](https://huggingface.co/tencent/Hunyuan-A13B-Instruct-FP8).
+
+#### FP8 Benchmark
+This subsection describes the Benchmark metrics for the Hunyuan-80B-A13B-Instruct-FP8 quantitative model.
+
+|   Bench   | Hunyuan-A13B-Instruct | Hunyuan-A13B-Instruct-FP8 | 
+|:---------:|:---------------------:|:-------------------------:|
+| AIME 2024 |         87.3          |           86.7            |
+|   Gsm8k   |         94.39         |           94.01           |
+|    BBH    |         89.1          |           88.34           |
+|   DROP    |         91.1          |           91.1            |
+
+### Int4 Quantization
+We use the GPTQ algorithm to achieve W4A16 quantization, which processes the model weights layer by layer, uses a small amount of calibration data to minimize the reconfiguration error of the quantized weights, and adjusts the weights layer by layer by the optimization process of approximating the Hessian inverse matrix. The process eliminates the need to retrain the model and requires only a small amount of calibration data to quantize the weights, improving inference efficiency and lowering the deployment threshold. You can use `AngleSlim` quantization, you can also directly download our quantization completed open source model to use [Hunyuan-A13B-Instruct-Int4](https://huggingface.co/tencent/Hunyuan-A13B-Instruct-GPTQ-Int4).
+
+#### Int4 Benchmark
+This subsection describes the Benchmark metrics for the Hunyuan-80B-A13B-Instruct-GPTQ-Int4 quantitative model.
+
+|     Bench      | Hunyuan-A13B-Instruct | Hunyuan-A13B-Instruct-GPTQ-Int4 | 
+|:--------------:|:---------------------:|:-------------------------------:|
+| OlympiadBench  |         82.7          |              84.0               |
+|   AIME 2024    |         87.3          |              86.7               |
+|     Gsm8k      |         94.39         |              94.24              |
+|      BBH       |         88.34         |              87.91              |
+|      DROP      |         91.12         |              91.05              |
+
+
 ## Deployment   
 
-For deployment, you can use frameworks such as **vLLM**, **SGLang**, or **TensorRT-LLM** to serve the model and create an OpenAI-compatible API endpoint.
+For deployment, you can use frameworks such as **TensorRT-LLM**, **vLLM**, or **SGLang** to serve the model and create an OpenAI-compatible API endpoint.
+
+image: https://hub.docker.com/r/hunyuaninfer/hunyuan-a13b/tags 
+
+
+### TensorRT-LLM
+
+#### Docker Image 
+
+We provide a pre-built Docker image based on the latest version of TensorRT-LLM.
+
+- To get started:
+
+https://hub.docker.com/r/hunyuaninfer/hunyuan-large/tags 
+
+```
+docker pull hunyuaninfer/hunyuan-a13b:hunyuan-moe-A13B-trtllm
+```
+
+- Start the API server:
+
+```
+docker run --name hunyuanLLM_infer --rm -it --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 --gpus=all hunyuaninfer/hunyuan-a13b:hunyuan-moe-A13B-trtllm
+```
+```
+trtllm-serve \
+  /path/to/HunYuan-moe-A13B \
+  --host localhost \
+  --port 8000 \
+  --backend pytorch \
+  --max_batch_size 128 \
+  --max_num_tokens 16384 \
+  --tp_size 2 \
+  --kv_cache_free_gpu_memory_fraction 0.95 \
+  --extra_llm_api_options /path/to/extra-llm-api-config.yml
+```
 
 
 ### vllm
@@ -149,11 +204,10 @@ We provide a pre-built Docker image containing vLLM 0.8.5 with full support for 
 
 - To get started:
 
-https://hub.docker.com/r/hunyuaninfer/hunyuan-large/tags 
-
 ```
+docker pull docker.cnb.cool/tencent/hunyuan/hunyuan-a13b:hunyuan-moe-A13B-vllm 
+or
 docker pull hunyuaninfer/hunyuan-a13b:hunyuan-moe-A13B-vllm
-
 ```
 
 - Download Model file: 
@@ -195,7 +249,7 @@ To get started:
 - Pull the Docker image
 
 ```
-docker pull tiacc-test.tencentcloudcr.com/tiacc/sglang:0.4.7
+docker pull docker.cnb.cool/tencent/hunyuan/hunyuan-a13b:hunyuan-moe-A13B-sglang
 or
 docker pull hunyuaninfer/hunyuan-a13b:hunyuan-moe-A13B-sglang
 ```
@@ -207,7 +261,7 @@ docker run --gpus all \
     --shm-size 32g \
     -p 30000:30000 \
     --ipc=host \
-    tiacc-test.tencentcloudcr.com/tiacc/sglang:0.4.7 \
+    docker.cnb.cool/tencent/hunyuan/hunyuan-a13b:hunyuan-moe-A13B-sglang \
     -m sglang.launch_server --model-path hunyuan/huanyuan_A13B --tp 4 --trust-remote-code --host 0.0.0.0 --port 30000
 ```
 

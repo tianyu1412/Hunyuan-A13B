@@ -315,8 +315,109 @@ Int4量化我们采用[GPTQ](https://arxiv.org/abs/2210.17323 )算法实现W4A16
 
 ## 推理和部署 
 
-HunyuanLLM可以采用vLLM，sglang或TensorRT-LLM部署。为了简化部署过程HunyuanLLM提供了预构建docker镜像，详见【使用vLLM推理】章节。
+HunyuanLLM可以采用TensorRT-LLM, vLLM或sglang部署。为了简化部署过程HunyuanLLM提供了预构建docker镜像，详见一下章节。
 
+镜像：https://hub.docker.com/r/hunyuaninfer/hunyuan-a13b/tags
+
+## 使用TensorRT-LLM推理
+### Docker:
+
+为了简化部署过程，HunyuanLLM提供了预构建docker镜像 (注意： 该镜像要求Host的Cuda版本为12.8以上）：
+
+[hunyuaninfer/hunyuan-a13b:hunyuan-moe-A13B-trtllm](https://hub.docker.com/r/hunyuaninfer/hunyuan-a13b/tags) 。您只需要下载模型文件并用下面代码启动docker即可开始推理模型。
+```shell
+# 拉取
+国内：
+docker pull docker.cnb.cool/tencent/hunyuan/hunyuan-a13b:hunyuan-moe-A13B-trtllm
+国外：
+docker pull hunyuaninfer/hunyuan-a13b:hunyuan-moe-A13B-trtllm
+
+# 启动
+docker run --name hunyuanLLM_infer --rm -it --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 --gpus=all hunyuaninfer/hunyuan-a13b:hunyuan-moe-A13B-trtllm     
+```
+
+注: Docker容器权限管理。以上代码采用特权模式（--privileged）启动Docker容器会赋予容器较高的权限，增加数据泄露和集群安全风险。建议在非必要情况下避免使用特权模式，以降低安全威胁。对于必须使用特权模式的场景，应进行严格的安全评估，并实施相应的安全监控、加固措施。
+
+### BF16部署
+
+#### Step1：执行推理
+
+#### 方式1：命令行推理
+
+下面我们展示一个代码片段，采用`TensorRT-LLM`快速请求chat model：
+修改 examples/pytorch/quickstart_advanced.py 中如下代码：
+
+
+```python
+from tensorrt_llm import SamplingParams
+from tensorrt_llm._torch import LLM
+from tensorrt_llm._torch.pyexecutor.config import PyTorchConfig
+from tensorrt_llm.llmapi import (EagleDecodingConfig, KvCacheConfig,
+                                 MTPDecodingConfig)
+
+prompt = "Write a short summary of the benefits of regular exercise"
+
+def main():
+    args = parse_arguments()
+
+    llm, sampling_params = setup_llm(args)
+    new_prompts = []
+    if args.apply_chat_template:
+        messages = [{"role": "user", "content": f"{prompt}"}]
+        new_prompts.append(llm.tokenizer.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True)
+        )
+
+    outputs = llm.generate(new_prompts, sampling_params)
+
+    for i, output in enumerate(outputs):
+        prompt = output.prompt
+        generated_text = output.outputs[0].text
+        print(f"[{i}] Prompt: {prompt!r}, Generated text: {generated_text!r}")
+```
+
+运行方式：
+
+```shell
+python3 quickstart_advanced.py --model_dir "HunyuanLLM模型路径" --tp_size 4 --apply_chat_template
+```
+
+#### 方式2：服务化推理
+
+下面我们展示使用`TensorRT-LLM`服务化的方式部署模型和请求。
+
+```shell
+trtllm-serve \
+  /path/to/HunYuan-moe-A13B \
+  --host localhost \
+  --port 8000 \
+  --backend pytorch \
+  --max_batch_size 128 \
+  --max_num_tokens 16384 \
+  --tp_size 2 \
+  --kv_cache_free_gpu_memory_fraction 0.95 \
+  --extra_llm_api_options /path/to/extra-llm-api-config.yml
+```
+
+服务启动成功后, 使用 OpenAI API 进行模型推理调用：
+```
+curl -X POST "http://localhost:8000/v1/chat/completions" \
+  -H "Content-Type: application/json" \
+  --data '{
+    "model": "HunYuan/HunYuan-80B-A13B",
+           "Max_tokens": 1024,
+           "Temperature": 0,
+    "messages": [
+      {
+        "role": "user",
+        "content": "What is Tencent HunYuan?"
+      }
+    ]
+  }'
+```
+
+#### FP8/Int4量化模型部署：
+目前 TensorRT-LLM 的 fp8 和 int4 量化模型正在支持中，敬请期待。
 
 
 ## 使用vLLM推理
@@ -332,19 +433,22 @@ modelscope download --model Tencent-Hunyuan/Hunyuan-A13B-Instruct
 # Huggingface: vllm 会自动下载
 
 # 拉取
+国内：
+docker pull docker.cnb.cool/tencent/hunyuan/hunyuan-a13b:hunyuan-moe-A13B-vllm 
+国外：
 docker pull hunyuaninfer/hunyuan-a13b:hunyuan-moe-A13B-vllm
 
 # 使用 huggingface 起服务
 docker run  --privileged --user root  --net=host --ipc=host \
         -v ~/.cache:/root/.cache/ \
-        --gpus=all -it --entrypoint python  hunyuaninfer/hunyuan-a13b:hunyuan-moe-A13B-vllm \
+        --gpus=all -it --entrypoint python docker.cnb.cool/tencent/hunyuan/hunyuan-a13b:hunyuan-moe-A13B-vllm \
          -m vllm.entrypoints.openai.api_server --host 0.0.0.0 --port 8000 \
          --tensor-parallel-size 4 --model tencent/Hunyuan-A13B-Instruct --trust-remote-code 
 
 # 使用modelscope下载的模型起服务
 docker run  --privileged --user root  --net=host --ipc=host \
         -v ~/.cache/modelscope:/root/.cache/modelscope \
-        --gpus=all -it --entrypoint python   hunyuaninfer/hunyuan-a13b:hunyuan-moe-A13B-vllm \
+        --gpus=all -it --entrypoint python   docker.cnb.cool/tencent/hunyuan/hunyuan-a13b:hunyuan-moe-A13B-vllm \
          -m vllm.entrypoints.openai.api_server --host 0.0.0.0 --tensor-parallel-size 4 \
          --port 8000 --model /root/.cache/modelscope/hub/models/Tencent-Hunyuan/Hunyuan-A13B-Instruct/ --trust_remote_code           
 ```
@@ -520,87 +624,6 @@ python3 benchmark_throughput.py --backend vllm \
 | vLLM | Hunyuan-A13B-Instruct(W8A8C8-FP8)       |    1      | 2048                  |     60.07      |         148.80     |      160.41       |
 
 
-## 使用TensorRT-LLM推理
-
-### BF16部署
-
-#### Step1：执行推理
-
-#### 方式1：命令行推理
-
-下面我们展示一个代码片段，采用`TensorRT-LLM`快速请求chat model：
-修改 examples/pytorch/quickstart_advanced.py 中如下代码：
-
-
-```python
-from tensorrt_llm import SamplingParams
-from tensorrt_llm._torch import LLM
-from tensorrt_llm._torch.pyexecutor.config import PyTorchConfig
-from tensorrt_llm.llmapi import (EagleDecodingConfig, KvCacheConfig,
-                                 MTPDecodingConfig)
-
-prompt = "Write a short summary of the benefits of regular exercise"
-
-def main():
-    args = parse_arguments()
-
-    llm, sampling_params = setup_llm(args)
-    new_prompts = []
-    if args.apply_chat_template:
-        messages = [{"role": "user", "content": f"{prompt}"}]
-        new_prompts.append(llm.tokenizer.apply_chat_template(
-            messages, tokenize=False, add_generation_prompt=True)
-        )
-
-    outputs = llm.generate(new_prompts, sampling_params)
-
-    for i, output in enumerate(outputs):
-        prompt = output.prompt
-        generated_text = output.outputs[0].text
-        print(f"[{i}] Prompt: {prompt!r}, Generated text: {generated_text!r}")
-```
-
-运行方式：
-
-```shell
-python3 quickstart_advanced.py --model_dir "HunyuanLLM模型路径" --tp_size 4 --apply_chat_template
-```
-
-#### 方式2：服务化推理
-
-下面我们展示使用`TensorRT-LLM`服务化的方式部署模型和请求。
-
-```shell
-model_path="HunyuanLLM模型路径"
-trtllm-serve <model_path> [--backend pytorch --tp_size <tp> --ep_size <ep> --host <host> --port <port>]
-```
-
-服务启动成功后, 运行请求脚本：
-```python
-### OpenAI Chat Client
-
-from openai import OpenAI
-
-client = OpenAI(
-    base_url="http://localhost:8000/v1",
-    api_key="tensorrt_llm",
-)
-
-response = client.chat.completions.create(
-    model="default",
-    messages=[{
-        "role": "user",
-        "content": "Write a short summary of the benefits of regular exercise"
-    }],
-    max_tokens=4096,
-)
-print(response)
-```
-
-#### FP8/Int4量化模型部署：
-目前 TensorRT-LLM 的 fp8 和 int4 量化模型正在支持中，敬请期待。
-
-
 ## 使用sglang推理
 
 ### BF16部署
@@ -609,7 +632,7 @@ print(response)
 
 
 ```
-docker pull tiacc-test.tencentcloudcr.com/tiacc/sglang:0.4.7
+docker pull docker.cnb.cool/tencent/hunyuan/hunyuan-a13b:hunyuan-moe-A13B-sglang
 或
 docker pull hunyuaninfer/hunyuan-a13b:hunyuan-moe-A13B-sglang
 ```
@@ -621,7 +644,7 @@ docker run --gpus all \
     --shm-size 32g \
     -p 30000:30000 \
     --ipc=host \
-    tiacc-test.tencentcloudcr.com/tiacc/sglang:0.4.7 \
+    docker.cnb.cool/tencent/hunyuan/hunyuan-a13b:hunyuan-moe-A13B-sglang \
     -m sglang.launch_server --model-path hunyuan/huanyuan_A13B --tp 4 --trust-remote-code --host 0.0.0.0 --port 30000
 ```
 
