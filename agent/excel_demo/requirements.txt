@@ -1,0 +1,11 @@
+ipython==9.3.0
+ipython_pygments_lexers==1.1.1
+ipykernel==6.29.5
+nbformat==5.10.4
+nbclient==0.10.2
+altair==5.5.0
+pandas==2.2.3
+matplotlib==3.10.3
+matplotlib-inline==0.1.7
+openpyxl==3.1.5
+openai==1.91.0
