@@ -1,7 +1,7 @@
 ---
 license: other
 license_name: tencent-hunyuan-a13b
-license_link: https://github.com/Tencent-Hunyuan/Hunyuan-A13B/blob/main/LICENSE
+license_link: https://github.com/Tencent-Hunyuan/Hunyuan-A13B/blob/main/LICENSE.txt
 ---
 
 <p align="left">
