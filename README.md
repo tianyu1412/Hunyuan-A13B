@@ -1,3 +1,8 @@
+<p align="left">
+    <a href="README_CN.md">中文</a>&nbsp ｜ English</a>
+</p>
+<br><br>
+
 <p align="center">
  <img src="https://dscache.tencent-cloud.cn/upload/uploader/hunyuan-64b418fd052c033b228e04bc77bbc4b54fd7f5bc.png" width="400"/> <br>
 </p><p></p>
