@@ -191,7 +191,7 @@ https://hub.docker.com/r/hunyuaninfer/hunyuan-large/tags
 docker pull hunyuaninfer/hunyuan-a13b:hunyuan-moe-A13B-trtllm
 ```
 ```
-docker run --name hunyuanLLM_infer --rm -it --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 --gpus=all hunyuaninfer/hunyuan-a13b:hunyuan-moe-A13B-trtllm
+docker run --privileged --user root --name hunyuanLLM_infer --rm -it --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 --gpus=all hunyuaninfer/hunyuan-a13b:hunyuan-moe-A13B-trtllm
 ```
 
 - Prepare Configuration file:
