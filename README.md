@@ -352,6 +352,9 @@ docker run --gpus all \
     -m sglang.launch_server --model-path hunyuan/huanyuan_A13B --tp 4 --trust-remote-code --host 0.0.0.0 --port 30000
 ```
 
+## Community Resources
+
+- Hunyuan-A13B Quick Start on CNB [![Hunyuan-A13B Quick Start on CNB](https://img.shields.io/badge/Open_in-CNB-orange)](https://cnb.cool/tencent/hunyuan/examples/Hunyuan-A13B-Quick-Start)
 
 ## Contact Us
 
