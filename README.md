@@ -354,7 +354,7 @@ docker run --gpus all \
 
 ## Community Resources
 
-- Hunyuan-A13B Quick Start on CNB [![Hunyuan-A13B Quick Start on CNB](https://img.shields.io/badge/Open_in-CNB-orange)](https://cnb.cool/tencent/hunyuan/examples/Hunyuan-A13B-Quick-Start)
+- [Hunyuan-A13B Quick Start on CNB](https://cnb.cool/tencent/hunyuan/examples/Hunyuan-A13B-Quick-Start)
 
 ## Contact Us
 

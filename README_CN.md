@@ -805,6 +805,9 @@ hunyuan-A13B 现已开放网页demo。访问 https://hunyuan.tencent.com/?model=
 
 <br>
 
+## 社区资源
+
+- [Hunyuan-A13B 在 CNB 中快速开始](https://cnb.cool/tencent/hunyuan/examples/Hunyuan-A13B-Quick-Start)
 
 ## 联系我们
 如果你想给我们的研发和产品团队留言，欢迎联系我们腾讯混元LLM团队。你可以通过邮件（hunyuan_opensource@tencent.com）联系我们。
