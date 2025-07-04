@@ -431,7 +431,7 @@ def main():
 运行方式：
 
 ```shell
-python3 quickstart_advanced.py --model_dir "HunyuanLLM模型路径" --tp_size 4 --apply_chat_template
+python3 quickstart_advanced.py --model_dir "HunyuanLLM模型路径" --tp_size 4
 ```
 
 #### 方式2：服务化推理
@@ -668,7 +668,7 @@ sh openapi.sh
 
 ### 性能评估：
 
-本部分介绍采用vLLM部署各个模型（原始模型和量化模型）的效率测试结果，包括不同Batchsize下的推理速度(tokens/s), 测试环境（腾讯云，H80（96G）GPU x 卡数）:
+本部分介绍采用vLLM部署各个模型（原始模型和量化模型）的效率测试结果，包括不同Batchsize下的推理速度(tokens/s), 测试环境（腾讯云，H20（96G）GPU x 卡数）:
 
 测试命令：
 ```python
